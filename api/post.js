@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-  // ✅ CORS FIX (IMPORTANT)
+  // ✅ CORS FIX
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,22 +9,24 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ✅ GET params (from your Lovable frontend)
-  const { igId, imageUrl, caption, accessToken } = req.query;
+  // ✅ GET params (from frontend)
+  const { igId, imageUrl, caption } = req.query;
 
-  // fallback caption
+  // 🔥 HARDCODE TOKEN (IMPORTANT)
+  const accessToken = "EAANhAkRWdZAMBRULRQIhimt7KWUg0TE47GdHbX7mqvedmHwgw6YxcFdnwpUUdjTXLNPfXuo47v1UIFs1gP42vB1jUlSw9x2ZCWLYkYLgwGdrZCUt1yX0K7NuYT0b3mviQ8epkqwbcFu1CHRcMZBL95pgWX6sEDdOyIRM2UfJSmgLc90WaH5CnQTiar0fgWq5e7v6FqiDWjxYtejDgAsHMXRQFs5yKy4AGCeRQgZDZD";
+
   const finalCaption = caption || "";
 
-  // ❌ validation
-  if (!igId || !imageUrl || !accessToken) {
+  // ❌ validation (token removed from check)
+  if (!igId || !imageUrl) {
     return res.status(400).json({
       error: "Missing params",
-      required: ["igId", "imageUrl", "accessToken"],
+      required: ["igId", "imageUrl"],
     });
   }
 
   try {
-    // 🔹 STEP 1 — Create media container
+    // 🔹 STEP 1 — Create media
     const createUrl =
       `https://graph.facebook.com/v25.0/${igId}/media` +
       `?image_url=${encodeURIComponent(imageUrl)}` +
@@ -37,11 +39,9 @@ export default async function handler(req, res) {
 
     const createData = await createRes.json();
 
-    // ❌ fail check
     if (!createData.id) {
       return res.status(500).json({
         step: "create media failed",
-        createUrl,
         response: createData,
       });
     }
@@ -58,11 +58,9 @@ export default async function handler(req, res) {
 
     const publishData = await publishRes.json();
 
-    // ❌ fail check
     if (!publishData.id) {
       return res.status(500).json({
         step: "publish failed",
-        publishUrl,
         response: publishData,
       });
     }
@@ -71,7 +69,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       postId: publishData.id,
-      creationId: createData.id,
     });
 
   } catch (err) {
