@@ -1,12 +1,11 @@
 export default async function handler(req, res) {
-  if (req.method === "POST") {
-    const data = req.body;
-
+  if (req.method === "GET") {
     return res.status(200).json({
-      message: "POST received ✅",
-      data: data,
+      message: "GET working ✅",
+      example: "/api/post?test=hello",
+      received: req.query,
     });
   }
 
-  res.status(200).json({ message: "Use POST request" });
+  res.status(200).json({ message: "Only GET for now" });
 }
