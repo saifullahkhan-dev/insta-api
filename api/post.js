@@ -40,11 +40,16 @@ export default async function handler(req, res) {
     const createData = await createRes.json();
 
     if (!createData.id) {
-      return res.status(500).json({
-        step: "create media failed",
-        response: createData,
-      });
-    }
+  return res.status(500).json({
+    step: "create media failed",
+    debug: {
+      igId,
+      imageUrl,
+      caption: finalCaption,
+    },
+    response: createData,
+  });
+}
 
     // 🔹 STEP 2 — Publish
     const publishUrl =
