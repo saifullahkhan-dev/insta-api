@@ -8,19 +8,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔥 Fetch public Instagram page
-    const htmlRes = await fetch(`https://www.instagram.com/${username}/`);
-    const html = await htmlRes.text();
+    const response = await fetch(
+      `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+          "Accept": "*/*",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      }
+    );
 
-    // 🔥 Extract JSON from page
-    const jsonMatch = html.match(/window\._sharedData = (.*?);<\/script>/);
+    const data = await response.json();
 
-    if (!jsonMatch) {
-      return res.status(500).json({ error: "Failed to extract data" });
+    const user = data?.data?.user;
+
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found or blocked",
+      });
     }
-
-    const data = JSON.parse(jsonMatch[1]);
-    const user = data.entry_data.ProfilePage[0].graphql.user;
 
     const followers = user.edge_followed_by.count;
     const following = user.edge_follow.count;
