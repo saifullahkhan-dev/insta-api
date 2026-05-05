@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       postsPercent: 40
     },
     insights: [
-      `Analysis for ${username}`,
+      `@${username} has average engagement — improve consistency`
       "Post more consistently"
     ],
     score: 75
