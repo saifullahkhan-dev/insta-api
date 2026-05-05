@@ -8,27 +8,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(
-      `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          "Accept": "*/*",
-          "Accept-Language": "en-US,en;q=0.9",
-          "X-Requested-With": "XMLHttpRequest",
-          "Referer": "https://www.instagram.com/",
-        },
-      }
-    );
+    const url = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`;
+
+    // 🔥 Use proxy from server (not browser)
+    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+
+    const response = await fetch(proxyUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      },
+    });
 
     const text = await response.text();
 
-    // 🔥 Prevent crash if blocked
     if (!text || text.startsWith("<!DOCTYPE")) {
-      return res.status(500).json({
-        error: "Instagram blocked request (try again later)",
-      });
+      throw new Error("Blocked response");
     }
 
     const data = JSON.parse(text);
@@ -40,9 +35,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const followers = user.edge_followed_by.count;
-    const following = user.edge_follow.count;
-    const posts = user.edge_owner_to_timeline_media.edges;
+    const posts = user.edge_owner_to_timeline_media.edges || [];
 
     let totalLikes = 0;
     let totalComments = 0;
@@ -56,34 +49,30 @@ export default async function handler(req, res) {
     const avgComments = posts.length ? totalComments / posts.length : 0;
 
     const engagementRate =
-      followers > 0
-        ? ((avgLikes + avgComments) / followers) * 100
+      user.edge_followed_by.count > 0
+        ? ((avgLikes + avgComments) / user.edge_followed_by.count) * 100
         : 0;
 
     return res.status(200).json({
       profile: {
-        username,
-        followers,
-        following,
-        posts: posts.length,
+        username: user.username,
+        followers: user.edge_followed_by.count,
+        following: user.edge_follow.count,
+        posts: user.edge_owner_to_timeline_media.count
       },
       metrics: {
         engagementRate: Number(engagementRate.toFixed(2)),
         avgLikes: Math.round(avgLikes),
         avgComments: Math.round(avgComments),
         postingFrequency: posts.length,
-        growthRate: 0,
+        growthRate: 0
       },
-      content: {
-        reelsPercent: 0,
-        postsPercent: 100,
-      },
+      score: Math.min(100, Math.round(engagementRate * 10)),
       insights: [
         engagementRate > 3
           ? "Good engagement"
-          : "Needs improvement",
-      ],
-      score: Math.min(100, Math.round(engagementRate * 10)),
+          : "Needs improvement"
+      ]
     });
 
   } catch (err) {
