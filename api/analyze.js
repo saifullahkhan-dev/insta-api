@@ -1,4 +1,14 @@
 export default async function handler(req, res) {
+  // ✅ ADD THIS (CORS fix)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   const { username } = req.query;
 
   if (!username) {
@@ -24,7 +34,7 @@ export default async function handler(req, res) {
       postsPercent: 40
     },
     insights: [
-      `@${username} has average engagement — improve consistency`
+      `Analysis for ${username}`,
       "Post more consistently"
     ],
     score: 75
