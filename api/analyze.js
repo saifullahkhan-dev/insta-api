@@ -15,18 +15,28 @@ export default async function handler(req, res) {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
           "Accept": "*/*",
+          "Accept-Language": "en-US,en;q=0.9",
           "X-Requested-With": "XMLHttpRequest",
+          "Referer": "https://www.instagram.com/",
         },
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
 
+    // 🔥 Prevent crash if blocked
+    if (!text || text.startsWith("<!DOCTYPE")) {
+      return res.status(500).json({
+        error: "Instagram blocked request (try again later)",
+      });
+    }
+
+    const data = JSON.parse(text);
     const user = data?.data?.user;
 
     if (!user) {
       return res.status(404).json({
-        error: "User not found or blocked",
+        error: "User not found",
       });
     }
 
@@ -42,11 +52,13 @@ export default async function handler(req, res) {
       totalComments += post.node.edge_media_to_comment.count;
     });
 
-    const avgLikes = totalLikes / posts.length;
-    const avgComments = totalComments / posts.length;
+    const avgLikes = posts.length ? totalLikes / posts.length : 0;
+    const avgComments = posts.length ? totalComments / posts.length : 0;
 
     const engagementRate =
-      ((avgLikes + avgComments) / followers) * 100;
+      followers > 0
+        ? ((avgLikes + avgComments) / followers) * 100
+        : 0;
 
     return res.status(200).json({
       profile: {
